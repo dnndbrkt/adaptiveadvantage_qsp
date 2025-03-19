@@ -17,25 +17,6 @@ red = "#5a002c"
 yellow = "#ffdb58"
 green = "#006400"
 
-def sum_gates_and(andfunc,ns):
-    gates = np.zeros(len(ns))
-    for i , n in enumerate(ns):
-        print(n)
-        res = 0
-        for g in ['d','m']:
-            res+= andfunc(n,g,"all",False)
-        gates[i] = res
-    return gates
-
-def sum_idle_and(andfunc,ns):
-    gates = np.zeros(len(ns))
-    for i , n in enumerate(ns):
-        res = 0
-        for g in ['id','im','ic']:
-            res+= andfunc(n,g,"all",False)
-        gates[i] = res
-    return gates
-
 def compFO():
     tops = ['all','1d','2d']
     labels = [' ', ' ', ' ']
@@ -45,9 +26,6 @@ def compFO():
         gates_top = sum_gates_FO(n,top)
         idle_top = sum_idle_FO(n,top)
         exponent = (idle_top - idle_LAQCC)/(gates_LAQCC-gates_top)
-        print(expand(exponent))
-        print("\n")
-
         if top == "all":
             ns = np.linspace(5,2**(39))
         if top =="2d":
@@ -89,10 +67,10 @@ def compFO():
 def compAND():
     ns = [int(x) for x in np.linspace(10,1000,50)]
     _, ax = plt.subplots()
-    gates_or = sum_gates_and(orr,ns)
-    idle_or = sum_idle_and(orr,ns)
-    gates_rec = sum_gates_and(and_recursive,ns)
-    idle_rec = sum_idle_and(and_recursive,ns)
+    gates_or = sum_gates_AND(orr,ns)
+    idle_or = sum_idle_AND(orr,ns)
+    gates_rec = sum_gates_AND(AND_recursive,ns)
+    idle_rec = sum_idle_AND(AND_recursive,ns)
     gamma1 = (idle_rec- idle_or)
     gamma2 = -1*(gates_rec - gates_or)
     exps = gamma1/gamma2
@@ -128,9 +106,6 @@ def compOR():
         gates_top = sum_gates_OR(n,top)
         idle_top = sum_idle_OR(n,top)
         exponent = (idle_top - idle_LAQCC)/(gates_LAQCC-gates_top)
-        print(expand(exponent))
-        print("\n")
-
         if top == "all":
             ns = np.linspace(5,2**(57))
         if top =="2d":
@@ -166,57 +141,7 @@ def compOR():
         plt.legend(loc ="upper left")
         plt.savefig(f"OR_{top}.png", dpi = (600)) 
 
-
-def unbin_comp_qsp(gate_qsp,idle_qsp,ucg = parallelized_UCG):
-    tops = ['1d','2d']
-    labels = ['1D grid', '2D grid']
-    ns_all = ([50,50,20,20],[1000,1000,1000,200])
-    for i,(label,top) in enumerate(zip(labels,tops)):
-        nss =[np.linspace(10,ns,50) for ns in ns_all[i]]
-        d0 = ([10]*len(nss[0]),"10")
-        d1 = (nss[1],"n")
-        d2 = (nss[2]**2,"n^2")
-        dss = [d0,d1,d2]
-        for j, (ns, ds) in enumerate(zip(nss, dss)):
-            gates_laqcc = gate_qsp(ucg,ns,ds[0],"LAQCC")
-            idles_laqcc = idle_qsp(ucg,ns,ds[0],"LAQCC")
-             
-             
-            gates_top = gate_qsp(ucg,ns,ds[0],top)
-            idles_top = idle_qsp(ucg,ns,ds[0],top)
-             
-             
-            gamma_2=  gates_laqcc- gates_top
-            gamma_1 = idles_top - idles_laqcc
-            if top != "all":
-                _, ax = plt.subplots()
-                ax.plot(ns,gamma_2,'red')
-                ax.plot(ns,-1*gamma_1,'blue')
-                plt.show()
-            gamma = gamma_1/gamma_2
-             
-             
-             
-            _, ax = plt.subplots()
-            ax.set_xlim(min(ns),max(ns))
-            ax.set_ylim(min(gamma), max(3, max(gamma)))
-            ymin,ymax = ax.get_ylim()
-            if top != "1d":
-                ax.set_yticks(list(range(int(ymin),int(ymax)+2)))
-            ax.fill_between(ns,ax.get_ylim()[0],0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
-            ax.fill_between(ns,0,1,color = grey, alpha = 0.2, interpolate = True,label = "Unrealistic")
-            ax.axhline(y=gamma_brisbane,color = beige,linestyle = 'dashed', label = "IBM Brisbane")
-            ax.plot(ns,gamma,color = blue,label= label)
-            ax.set_xlabel(r"$n$")
-            ax.set_ylabel(r"$\gamma_1\ /\ \gamma_2$")
-            ax.set_title(f"d = {ds[1]}")
-            if top == "all":
-                ax.set_xscale("log")
-            plt.legend()
-            plt.show()
-
-
-def comp_dense_unbin():
+def comp_dense_unary_based_QSP():
     tops = ['all','2d']
     labels = ['All-to-all', '2D grid']
     ns_all = [50,20]    
@@ -242,10 +167,10 @@ def comp_dense_unbin():
         ax.annotate("ibm_brisbane", xy = (0.2,(gamma_brisbane+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
         ax.annotate("ibm_torino",  xy = (0.2,(gamma_torino+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
         ds = [2**n for n in ns]  
-        gates_laqcc = sum_gates_un_to_bin(ns,ds,"LAQCC", dense = True)
-        idles_laqcc = sum_idle_un_to_bin(ns,ds,"LAQCC",dense = True)
-        gates_top = sum_gates_un_to_bin(ns,ds,top, dense = True)
-        idles_top = sum_idle_un_to_bin(ns,ds,top, dense = True)
+        gates_laqcc = sum_gates_unary_based(ns,ds,"LAQCC", dense = True)
+        idles_laqcc = sum_idle_unary_based(ns,ds,"LAQCC",dense = True)
+        gates_top = sum_gates_unary_based(ns,ds,top, dense = True)
+        idles_top = sum_idle_unary_based(ns,ds,top, dense = True)
          
          
         gamma_2=  gates_laqcc- gates_top
@@ -261,12 +186,10 @@ def comp_dense_unbin():
             plt.legend(loc = 'upper right')
         plt.show()
 
-
-
-def comp_dense_ucg_qsp():
+def comp_dense_UCG_QSP():
     UCGS = ['Parallelized', 'Sequential']
     ns_all = [990,990]    
-    for i,(ucglabel,ucg) in enumerate(zip(UCGS,[parallelized_UCG,gr])):
+    for i,(ucglabel,ucg) in enumerate(zip(UCGS,[parallelized_UCG,sequential_UCG])):
         _, ax = plt.subplots()
         ns =[int(x) for x in np.linspace(5,ns_all[i],8)]
         ax.fill_between(ns,-3,0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
@@ -297,13 +220,13 @@ def comp_dense_ucg_qsp():
                 ns =[int(x) for x in np.linspace(5,ns_all[i],8)]
              
              
-            gates_laqcc = sum_gates_dense_ucg_qsp(ucg,ns,"LAQCC")
+            gates_laqcc = sum_gates_dense_UCG_QSP(ucg,ns,"LAQCC")
              
-            idles_laqcc = sum_idle_dense_ucg_qsp(ucg,ns,"LAQCC")
+            idles_laqcc = sum_idle_dense_UCG_QSP(ucg,ns,"LAQCC")
              
-            gates_top = sum_gates_dense_ucg_qsp(ucg,ns,top)
+            gates_top = sum_gates_dense_UCG_QSP(ucg,ns,top)
              
-            idles_top = sum_idle_dense_ucg_qsp(ucg,ns,top)
+            idles_top = sum_idle_dense_UCG_QSP(ucg,ns,top)
              
              
             gamma_2=  gates_laqcc- gates_top
@@ -316,7 +239,7 @@ def comp_dense_ucg_qsp():
         plt.legend(loc = "upper right")
         plt.savefig(f"denseUCG_{top}.png", dpi =600)
 
-def comp_unbin():
+def comp_unary_based_QSP():
     tops = ['all','2d']
     labels = ['All-to-all', '2D grid']
     ns_all = ([1000,1000,1000,200], [1000,1000,1000,200])
@@ -358,11 +281,11 @@ def comp_unbin():
         morecolors = [red,yellow, blue]
         morecolors = morecolors + [green, "orange"]
         for j, ((ns, ds),color) in enumerate(zip(zip(nss, dss), morecolors)):
-            gates_laqcc = sum_gates_un_to_bin(ns,ds[0],"LAQCC")
-            idles_laqcc = sum_idle_un_to_bin(ns,ds[0],"LAQCC")
+            gates_laqcc = sum_gates_unary_based(ns,ds[0],"LAQCC")
+            idles_laqcc = sum_idle_unary_based(ns,ds[0],"LAQCC")
             
-            gates_top = sum_gates_un_to_bin(ns,ds[0],top)
-            idles_top = sum_idle_un_to_bin(ns,ds[0],top)
+            gates_top = sum_gates_unary_based(ns,ds[0],top)
+            idles_top = sum_idle_unary_based(ns,ds[0],top)
             gamma_2=  gates_laqcc- gates_top
             gamma_1 = idles_top - idles_laqcc
             gamma = gamma_1/gamma_2            
@@ -375,14 +298,13 @@ def comp_unbin():
             plt.legend(loc = 'upper center')
         plt.show()
 
-
-def comp_ucg_qsp():
+def comp_UCG_QSP():
     tops = ['all','2d']
     labels = ['All-to-all', '2D grid']
     ns_all = ([1000,1000,1000,1000], [1000,1000,1000,200])
     ucglabels = ["parallelized","sequential"]
     for i,(label,top) in enumerate(zip(labels,tops)):
-        for ucg, ucglabel in zip([parallelized_UCG,gr],ucglabels):
+        for ucg, ucglabel in zip([parallelized_UCG,sequential_UCG],ucglabels):
              
             nss =[np.linspace(5,ns,10) for ns in ns_all[i]]
             d0 = ([10]*len(nss[0]),"10")
@@ -413,11 +335,11 @@ def comp_ucg_qsp():
             morecolors = morecolors + [green, "orange"]
             
             for j, ((ns, ds),color) in enumerate(zip(zip(nss, dss), morecolors)):
-                gates_laqcc = sum_gates_ucg_qsp(ucg,ns,ds[0],"LAQCC")
-                idles_laqcc = sum_idle_ucg_qsp(ucg,ns,ds[0],"LAQCC")
+                gates_laqcc = sum_gates_UCG_QSP(ucg,ns,ds[0],"LAQCC")
+                idles_laqcc = sum_idle_UCG_QSP(ucg,ns,ds[0],"LAQCC")
                 
-                gates_top = sum_gates_ucg_qsp(ucg,ns,ds[0],top)
-                idles_top = sum_idle_ucg_qsp(ucg,ns,ds[0],top)
+                gates_top = sum_gates_UCG_QSP(ucg,ns,ds[0],top)
+                idles_top = sum_idle_UCG_QSP(ucg,ns,ds[0],top)
                 gamma_2=  gates_laqcc- gates_top
                 gamma_1 = idles_top - idles_laqcc
                 gamma = gamma_1/gamma_2
@@ -429,14 +351,8 @@ def comp_ucg_qsp():
             plt.savefig(f"sparseUCG_{ucglabel}_{top}.png",dpi=600)
 
 if __name__ == "__main__":
-    comp_ucg_qsp()
-
-
-
-
-
-if __name__ == "__main__":
     compFO()
     compOR()
     compAND()
+    comp_UCG_QSP()
     

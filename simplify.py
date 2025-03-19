@@ -4,13 +4,9 @@ import re
 import math
 import matplotlib.pyplot as plt
 
-
-
-
 n = symbols('n')
 
-
-def decideBase(n): # must be called with n-1 (:
+def decideBase(n): # must be called with n-1
     if n == 3:
         return np.array([1,0,0])
     if n == 4:
@@ -21,27 +17,26 @@ def decideBase(n): # must be called with n-1 (:
         return 2*decideBase(n/2)
     else:
         return decideBase((n-1)/2) + decideBase((n+1)/2)
-    
-
-def and_recursive(n,g,top,idle):
+  
+def AND_recursive(n,g,top,idle):
     """Succ. prob of recursive implementation of AND-gate from Nie et al. (2024)"""
     k = floor(log(n,2))-2
     bases = [3,4,5]
     if not idle:
         base_occurrences = decideBase(n-1)
-        left = (2**k-1)*(and_base(4,g,False)+and_base(5,g,False)) + (n*k-3*(2**k - 1))*(and_base(5,g,True))+ (n*k-2*(2**k - 1))*(and_base(4,g,True))
-        right = (2**k-1)*(and_base(5,g,False)) + (n*k-3*(2**k - 1))*(and_base(5,g,True))
+        left = (2**k-1)*(AND_base(4,g,False)+AND_base(5,g,False)) + (n*k-3*(2**k - 1))*(AND_base(5,g,True))+ (n*k-2*(2**k - 1))*(AND_base(4,g,True))
+        right = (2**k-1)*(AND_base(5,g,False)) + (n*k-3*(2**k - 1))*(AND_base(5,g,True))
         for base, occurrence in zip(bases,base_occurrences):
-            base_ands = occurrence*(and_base(base,g,False) + and_base(base,g,True))
-            left += base_ands
-            right += base_ands 
+            base_ANDs = occurrence*(AND_base(base,g,False) + AND_base(base,g,True))
+            left += base_ANDs
+            right += base_ANDs 
         return left + right
     else:
-        left = k*(and_base(5,g,idle)+and_base(4,g,idle) + and_base(base,g,idle))
-        right = k*(and_base(5,g,idle) + and_base(base,g,idle))
+        left = k*(AND_base(5,g,idle)+AND_base(4,g,idle) + AND_base(base,g,idle))
+        right = k*(AND_base(5,g,idle) + AND_base(base,g,idle))
         return left + right
 
-def and_base(n,g,idle):
+def AND_base(n,g,idle):
     """Succ. prob. of AND-gate base cases (n=3,4,5)"""
     if n == 3:
         if idle:
@@ -50,14 +45,14 @@ def and_base(n,g,idle):
             return pd(g,6) + pid(g,5)
     if n==4:
         if idle:
-            return 3*and_base(3,g,True)
+            return 3*AND_base(3,g,True)
         else:
-            return 3*and_base(3,g,False) + 6*and_base(3,g,True)
+            return 3*AND_base(3,g,False) + 6*AND_base(3,g,True)
     if n==5:
         if idle:
-            return 2*and_base(4,g,True)+and_base(3,g,True)
+            return 2*AND_base(4,g,True)+AND_base(3,g,True)
         else:
-            return 2*and_base(4,g,False)+and_base(3,g,False)+2*and_base(4,g,True) + 2*and_base(3,g,True)
+            return 2*AND_base(4,g,False)+AND_base(3,g,False)+2*AND_base(4,g,True) + 2*AND_base(3,g,True)
         
 def orr(n,g,top,idle):
     """Succ. prob. of OR-gate"""
@@ -106,32 +101,6 @@ def cu(g,idle):
             return 0
         else:
             return 3
-    else:
-        return 0
-
-def pd(g,num):
-    if g =="d":
-        return num
-    else:
-        return 0
-def pm(g,num):
-    if g =="m":
-        return num
-    else:
-        return 0
-def pid(g,num):
-    if g =="id":
-        return num
-    else:
-        return 0
-def pim(g,num):
-    if g =="im":
-        return num
-    else:
-        return 0
-def pic(g,num):
-    if g =="ic":
-        return num
     else:
         return 0
 
@@ -232,11 +201,10 @@ def rbs(g,idle):
     else:
         return pd(g,3)
 
+def unary_based_QSP(n,d,g,top,idle):
+    return unary_dataloader(d,g,top,idle) + unary_based(n,d,g,top,idle)
 
-def un_to_bin_QSP(n,d,g,top,idle):
-    return unary_dataloader(d,g,top,idle) + un_to_bin(n,d,g,top,idle)
-
-def un_to_bin(n,d,g,top,idle):
+def unary_based(n,d,g,top,idle):
     if idle:
         eqs = eq(n+1,g,top,True) + 2*fo(d,g,top,True) + fo(n,g,top,True)
     else:
@@ -245,7 +213,7 @@ def un_to_bin(n,d,g,top,idle):
         return fos+ eqs
 
 def perm(n,d,g,top,idle):
-    res = un_to_bin(n,d,g,top,idle)
+    res = unary_based(n,d,g,top,idle)
     if idle:
         return res + eq(n+1,g,top,idle) +2*fo(d,g,top,idle)
     else:
@@ -269,8 +237,8 @@ def sequential_UCG(n,d,g,top,idle):
         cus = 2**(n-1)*cu(g,idle)
     return eqs + cus
 
-def unarybased_QSP(n,d,g,top,idle):
-    return  (1/(d**(1/100)))*(unary_dataloader(d,g,top,idle) + un_to_bin(n,d,g,top,idle))
+def unary_based_QSP(n,d,g,top,idle):
+    return  (1/(d**(1/100)))*(unary_dataloader(d,g,top,idle) + unary_based(n,d,g,top,idle))
 
 def parallelized_UCG(n,d,g,top,idle):
     if n == 0:
@@ -301,3 +269,28 @@ def sparse_UCG_QSP(ucg,n,d,g,top):
     res = (1/(d**(1/8)))*perm(n,d,g,top,False)
     return dense_res +res
 
+def pd(g,num):
+    if g =="d":
+        return num
+    else:
+        return 0
+def pm(g,num):
+    if g =="m":
+        return num
+    else:
+        return 0
+def pid(g,num):
+    if g =="id":
+        return num
+    else:
+        return 0
+def pim(g,num):
+    if g =="im":
+        return num
+    else:
+        return 0
+def pic(g,num):
+    if g =="ic":
+        return num
+    else:
+        return 0

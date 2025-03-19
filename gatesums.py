@@ -37,7 +37,26 @@ def sum_idle_OR(n,top):
         res+= orr(n,g,top,False)
     return res
 
-def sum_gates_ucg_qsp(ucg,ns,ds,top):
+
+def sum_gates_AND(ANDfunc,ns):
+    gates = np.zeros(len(ns))
+    for i , n in enumerate(ns):
+        res = 0
+        for g in ['d','m']:
+            res+= ANDfunc(n,g,"all",False)
+        gates[i] = res
+    return gates
+
+def sum_idle_AND(ANDfunc,ns):
+    gates = np.zeros(len(ns))
+    for i , n in enumerate(ns):
+        res = 0
+        for g in ['id','im','ic']:
+            res+= ANDfunc(n,g,"all",False)
+        gates[i] = res
+    return gates
+
+def sum_gates_UCG_QSP(ucg,ns,ds,top):
     gates = np.zeros(len(ns))
     for i , (n,d) in enumerate(zip(ns,ds)):
         res = 0
@@ -46,7 +65,7 @@ def sum_gates_ucg_qsp(ucg,ns,ds,top):
         gates[i] = res
     return gates
 
-def sum_idle_ucg_qsp(ucg,ns,ds,top):
+def sum_idle_UCG_QSP(ucg,ns,ds,top):
     gates = np.zeros(len(ns))
     for i , (n,d) in enumerate(zip(ns,ds)):
         res = 0
@@ -56,39 +75,39 @@ def sum_idle_ucg_qsp(ucg,ns,ds,top):
     return gates
 
 
-def sum_gates_un_to_bin(ns,ds,top, dense = False):
+def sum_gates_unary_based(ns,ds,top, dense = False):
     gates = np.zeros(len(ns))
     if dense:
         for i , (n,d) in enumerate(zip(ns,ds)):
             res = 0
             for g in ['d','m']:
-                res+= unarybased_QSP(n,d,g,top,False)
+                res+= unary_based_QSP(n,d,g,top,False)
             gates[i] =round(res)
     else:
         for i , (n,d) in enumerate(zip(ns,ds)):
             res = 0
             for g in ['d','m']:
-                res+= unarybased_QSP(n,d,g,top,False)
+                res+= unary_based_QSP(n,d,g,top,False)
             gates[i] =round(res)
     return gates
 
-def sum_idle_un_to_bin(ns,ds,top, dense = False):
+def sum_idle_unary_based(ns,ds,top, dense = False):
     gates = np.zeros(len(ns))
     if dense:
         for i , (n,d) in enumerate(zip(ns,ds)):
             res = 0
             for g in ['id','im','ic']:
-                res+= unarybased_QSP(n,d,g,top,False)
+                res+= unary_based_QSP(n,d,g,top,False)
             gates[i] =round(res)
     else:
         for i , (n,d) in enumerate(zip(ns,ds)):
             res = 0
             for g in ['id','im','ic']:
-                res+= unarybased_QSP(n,d,g,top,False)
+                res+= unary_based_QSP(n,d,g,top,False)
             gates[i] =round(res)
     return gates
 
-def sum_gates_dense_ucg_qsp(ucg,ns,top):
+def sum_gates_dense_UCG_QSP(ucg,ns,top):
     gates = np.zeros(len(ns))
     for i , n in enumerate(ns):
          
@@ -99,7 +118,7 @@ def sum_gates_dense_ucg_qsp(ucg,ns,top):
         gates[i] = res
     return gates
 
-def sum_idle_dense_ucg_qsp(ucg,ns,top):
+def sum_idle_dense_UCG_QSP(ucg,ns,top):
     gates = np.zeros(len(ns))
     for i , n in enumerate(ns):
          
