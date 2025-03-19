@@ -7,39 +7,42 @@ import matplotlib.pyplot as plt
 
 
 
-n,p,logp, logp_1, logn, sqrtn,two_p, d,i = symbols('n p lp lpo ln sqrtn two_p d i')
+n = symbols('n')
 
-def andlogbetter(n,g,base,idle):
-    k = floor(log(n,2))-2
-    if not idle:
-        left = (2**k-1)*(andd(4,g,False)+andd(5,g,False)) + (n*k-3*(2**k - 1))*(andd(5,g,True))+ (n*k-2*(2**k - 1))*(andd(4,g,True))+(2**k)*(andd(base,g,False)+ andd(base,g,True))
-        right = (2**k-1)*(andd(5,g,False)) + (n*k-3*(2**k - 1))*(andd(5,g,True))+(2**k)*(andd(base,g,False) + andd(base,g,True))
-        return left + right
+
+def decideBase(n): # must be called with n-1 (:
+    if n == 3:
+        return np.array([1,0,0])
+    if n == 4:
+        return np.array([0,1,0])
+    if n == 5:
+        return np.array([0,0,1])
+    if n % 2 == 0:
+        return 2*decideBase(n/2)
     else:
-        left = k*(andd(5,g,idle)+andd(4,g,idle) + andd(base,g,idle))
-        right = k*(andd(5,g,idle) + andd(base,g,idle))
-        return left + right
+        return decideBase((n-1)/2) + decideBase((n+1)/2)
     
 
-def andlog(n,g,idle):
+def and_recursive(n,g,top,idle):
+    """Succ. prob of recursive implementation of AND-gate from Nie et al. (2024)"""
+    k = floor(log(n,2))-2
+    bases = [3,4,5]
     if not idle:
-        andfour = (n/4-1)*(andd(4,g,False)) + (2*n*log(n,2)-6*n+8)*(andd(4,g,True))
-        andfive = (n-1)*(andd(3,g,False)) + (2*n*log(n,2)-(11/2)*n+6)*(andd(3,g,True))
-        return andfour + andfive
-
-def andlogexact(n_int,g,idle):
-    if n_int <3:
-        return 0
-    if n_int >= 3 and n_int <= 5:
-        return andd(n_int,g,idle)
+        base_occurrences = decideBase(n-1)
+        left = (2**k-1)*(and_base(4,g,False)+and_base(5,g,False)) + (n*k-3*(2**k - 1))*(and_base(5,g,True))+ (n*k-2*(2**k - 1))*(and_base(4,g,True))
+        right = (2**k-1)*(and_base(5,g,False)) + (n*k-3*(2**k - 1))*(and_base(5,g,True))
+        for base, occurrence in zip(bases,base_occurrences):
+            base_ands = occurrence*(and_base(base,g,False) + and_base(base,g,True))
+            left += base_ands
+            right += base_ands 
+        return left + right
     else:
-        left = andlogexact(5,g,False) + (n_int-4)*andlogexact(5,g,True) + andlogexact(4,g,False) + (n_int-3)*andlogexact(4,g,True)
-        right = andlogexact(5,g,False) + (n_int-4)*andlogexact(5,g,True)
-        recursive_step = andlogexact(floor((n_int-1)/2),g,False) + andlogexact(ceiling((n_int-1)/2),g, False)
-        return left+right+recursive_step
+        left = k*(and_base(5,g,idle)+and_base(4,g,idle) + and_base(base,g,idle))
+        right = k*(and_base(5,g,idle) + and_base(base,g,idle))
+        return left + right
 
-
-def andd(n,g,idle):
+def and_base(n,g,idle):
+    """Succ. prob. of AND-gate base cases (n=3,4,5)"""
     if n == 3:
         if idle:
             return pid(g,6)
@@ -47,16 +50,17 @@ def andd(n,g,idle):
             return pd(g,6) + pid(g,5)
     if n==4:
         if idle:
-            return 3*andd(3,g,True)
+            return 3*and_base(3,g,True)
         else:
-            return 3*andd(3,g,False) + 6*andd(3,g,True)
+            return 3*and_base(3,g,False) + 6*and_base(3,g,True)
     if n==5:
         if idle:
-            return 2*andd(4,g,True)+andd(3,g,True)
+            return 2*and_base(4,g,True)+and_base(3,g,True)
         else:
-            return 2*andd(4,g,False)+andd(3,g,False)+2*andd(4,g,True) + 2*andd(3,g,True)
+            return 2*and_base(4,g,False)+and_base(3,g,False)+2*and_base(4,g,True) + 2*and_base(3,g,True)
         
 def orr(n,g,top,idle):
+    """Succ. prob. of OR-gate"""
     p = (log(n,2))
     if not idle:
         red = 2*orreduc(n-1,p,g,top,idle)
@@ -70,44 +74,9 @@ def orr(n,g,top,idle):
         fos = 3*fo(2**p-1,g,top,idle) + 2*fo(p+1,g,top,idle)
         cus = cu(g,idle)
         return ((red+fos+cus))
-    
-def orruit(n,g,top,idle):
-    p = log(n,2)
-    two_p = 2**p
-    if not idle:
-        red = 2*orreducuit(n-1,g,top,idle)
-        fos = (2*p+1)*fo(two_p-1,g,top,idle) + 2*(two_p-1)*fo(p+1,g,top,idle)
-        ghz = GHZ(two_p-1,g,top,idle)
-        cus = (two_p-1)*cu(g,idle)+(p*two_p-1)*cu(g,True)
-        return red + fos + ghz + cus
-    if idle:
-        red = 2*orreducuit(n-1,g,top,idle)
-        fos = 3*fo(two_p-1,g,top,idle) + 2*fo(p+1,g,top,idle)
-        cus = cu(g,idle)
-        return red+fos+cus
-
-# def orr2(n,g,top,idle):
-#     if not idle:
-#         red = 2*orreduc(n-1,p,g,top,idle)
-#         fos = (2*p+1)*fo(two_p-1,g,top,idle) + 2*(two_p-1)*fo(p+1,g,top,idle)
-#         ghz = GHZ(two_p-1,g,top,idle)
-#         cus = (two_p-1)*cu(g,idle)+(p*two_p-1)*cu(g,True)
-#         fos2 = 3*(n-1)*fo(two_p-1,g,top,True) + 2*(n-1)*fo(p+1,g,top,True)
-#         cus2 = (n-1)*cu(g,True)
-#         retu
-#rn red + fos + ghz + cus + fos2 + cus2
-#     if idle:
-#         red = 2*orreduc(n-1,p,g,top,idle)
-#         fos = 3*fo(two_p-1,g,top,idle) + 2*fo(p+1,g,top,idle)
-#         cus = cu(g,idle)
-#         return red+fos+cus
-
-def orreducuit(n,g,top,idle):
-    p = ceiling(log(n,2))
-    fos = 2*p*fo(n,g,top,idle) + 2*n*fo(p,g,top,idle)
-    return simplify(fos +n*p*cu(g,idle))
 
 def orreduc(n,p,g,top,idle):
+    """Succ. prob of OR-reduction"""
     if not idle:
         fos = 2*p*fo(n,g,top,idle) + 2*n*fo(p,g,top,idle)
         return fos +n*p*cu(g,idle)
@@ -116,12 +85,8 @@ def orreduc(n,p,g,top,idle):
         return ((fos + cu(g,idle)))
 
 def eq(n,g,top,idle):
-    if top == "all":
-        return andlogbetter(n,g,3,idle)
-    else:
-        return orr(n,g,top,idle)
-
-
+    """Succ. prob of EQ-gate"""
+    return orr(n,g,top,idle)
 
 def cu(g,idle):
     if g =="io":
@@ -171,6 +136,7 @@ def pic(g,num):
         return 0
 
 def GHZ(n,g,top,idle):
+    "Succ. Prob of GHZ-state"
     if top == "LAQCC":
         if idle:
             if g == "id":
@@ -207,6 +173,7 @@ def GHZ(n,g,top,idle):
         return 0
 
 def fo(n,g,top,idle):
+    """Succ. prob of FO-gate"""
     if g == "d":
         if idle:
             return 0
@@ -259,6 +226,7 @@ def fo(n,g,top,idle):
     return 0
 
 def rbs(g,idle):
+    """Succ. prob of RBS-gate"""
     if idle:
         return pid(g,3)
     else:
@@ -293,7 +261,7 @@ def unary_dataloader(d,g,top,idle):
     else:
         return (d-1)*rbs(g,False) + (iter*d-2*(d-1))*rbs(g,True)
 
-def gr(n,d,g,top,idle):
+def sequential_UCG(n,d,g,top,idle):
     if n == 1:
         return 0
     else:
@@ -301,233 +269,35 @@ def gr(n,d,g,top,idle):
         cus = 2**(n-1)*cu(g,idle)
     return eqs + cus
 
+def unarybased_QSP(n,d,g,top,idle):
+    return  (1/(d**(1/100)))*(unary_dataloader(d,g,top,idle) + un_to_bin(n,d,g,top,idle))
 
+def parallelized_UCG(n,d,g,top,idle):
+    if n == 0:
+        return 0
+    elif not idle:
+        fosa = 6*fo(d+1,g,top,idle) + 4*(n-1)*fo(d,g,top,idle)
+        fosb = 4*(d)*fo(d+1,g,top,True) + 2*(fo(d,g,top,True))
+        eqq = 2*d*eq(n,g,top,idle) + 2*eq(n,g,top,True)
+        cs = 3*d*cu(g,idle) + 3*n*cu(g,True)
+        return fosa+fosb+eqq+cs
+    else:
+        fosa = 4*fo(d+1,g,top,idle) + 2*fo(d,g,top,idle)
+        eqs = 2*eq(n,g,top,idle)
+        cs = 3*cu(g,idle)
+        return fosa + eqs + cs 
 
-
-
-def data_ucg_QSP():
-    print("allcock")
-    for g in ['d','m','id','im','ic']:
-        for top in ['all','1d','2d','LAQCC']:
-            res = ucg_dense_QSP(allcock,n,2**n,g,top)
-            #print(f"g = {g} \t top = {top} \t sum = {expand(res)}")
-    print("gr")
-    for g in ['d','m','id','im','ic']:
-        for top in ['all','1d','2d','LAQCC']:
-            res = ucg_dense_QSP(gr,n,d,2**n,top)
-            print(f"g = {g} \t top = {top} \t sum = {expand(res)}")
-
-
-def sum_gates_perm(n,d,top):
+def dense_UCG_QSP(ucg,n,d,g,top):
     res = 0
-    for g in ['d','m']:
-        res+= perm(n,d,g,top,False)
-        # res = res.subs(two_p,2**p)
-        # res =res.subs(p,ceiling(log(n,2)))
-    return res 
-
-def sum_idle_perm(n,d,top):
-    res = 0
-    for g in ['id','im','ic']:
-        res+= perm(n,d,g,top,False)
-        # res = res.subs(two_p,2**p)
-        # res =res.subs(p,ceiling(log(n,2)))
-    return res 
-
-def sum_gates_FO(n,top):
-    res = 0
-    for g in ['d','m']:
-        res+= fo(n,g,top,False)
-        # res = res.subs(two_p,2**p)
-        # res = res.subs(p,ceiling(log(n,2)))
+    for i in range(2,n+1):
+        res+= (1/(d**(1/8)))*ucg(i,d,g,top,False)
+    for i in range(2,n):
+        res+= (1/(d**(1/8)))*ucg(i,d,g,top,True)
     return res
 
-def sum_idle_FO(n,top):
-    res = 0
-    for g in ['id','im','ic']:
-        res+= fo(n,g,top,False)
-        # res = res.subs(two_p,2**p)
-        # res =res.subs(p,ceiling(log(n,2)))
-    return res
+def sparse_UCG_QSP(ucg,n,d,g,top):
+    ucg_max = ceiling(log(d,2))
+    dense_res = dense_UCG_QSP(ucg,ucg_max,2**ucg_max,g,top)
+    res = (1/(d**(1/8)))*perm(n,d,g,top,False)
+    return dense_res +res
 
-
-def sum_gates_OR(n,top):
-    res = 0
-    for g in ['d','m']:
-        res+= orr(n,g,top,False)
-        # res = res.subs(two_p,2**p)
-        # res = res.subs(p,ceiling(log(n,2)))
-    return res
-
-def sum_idle_OR(n,top):
-    res = 0
-    for g in ['id','im','ic']:
-        res+= orr(n,g,top,False)
-        # res = res.subs(two_p,2**p)
-        # res =res.subs(p,ceiling(log(n,2)))
-    return res
-
-
-def sum_gates_allcock_ucg(n,d,top,idle):
-    res = 0
-    for g in ['d','m']:
-        res+= allcock(n,d,g,top,idle)
-        # res = res.subs(two_p,2**p)
-        # res =res.subs(p,ceiling(log(n,2)))
-    return res
-
-def sum_idle_allcock_ucg(n,d,top,idle):
-    res = 0
-    for g in ['id','im','ic']:
-        res+= allcock(n,d,g,top,idle)
-        # res = res.subs(two_p,2**p)
-        # res =res.subs(p,ceiling(log(n,2)))
-    return res
-
-def sum_gates_un_to_bin(d,d_new,top):
-    res = 0
-    for g in ['d','m']:
-        res+= un_to_bin_QSP(n,d_new,g,top,False)
-    return res
-
-def sum_idle_un_to_bin(d,d_new,top):
-    res = 0
-    for g in ['id','im','ic']:
-        res+= un_to_bin_QSP(n,d_new,g,top,False)
-    return res
-
-def plotAllcock():
-    ns = np.linspace(10,500)
-    d = 100
-    colors = ['r','b','g','y']
-    tops = ['all','1d','2d','LAQCC']
-    for color,top in zip(colors,tops):
-        gate_func = lambdify(n, sum_gates_allcock(p,two_p,d,top),modules = ['numpy'])
-        gates = gate_func(ns)
-        plt.plot(ns,gates,color,label = top)
-    plt.legend()
-    plt.show()
-    for color,top in zip(colors,['all','1d','2d','LAQCC']):
-        idle_func = lambdify(n, sum_idle_allcock(p,two_p,d,top),modules = ['numpy'])
-        idles = idle_func(ns)        
-        plt.plot(ns,idles,color+'-',label = top)
-    plt.legend()
-    plt.show()
-
-def plotOR():
-    ns = np.linspace(5,500)
-    colors = ['r','b','g','y']
-    tops = ['all','1d','2d','LAQCC']
-    for color,top in zip(colors,tops):
-        gate_func = lambdify(n, sum_gates_OR(n,top),modules = ['numpy'])
-        gates = gate_func(ns)
-        if top != '1d':
-            plt.plot(ns,gates,color,label = top)
-    plt.legend()
-    plt.show()
-    for color,top in zip(colors,['all','1d','2d','LAQCC']):
-        idle_func = lambdify(n, sum_idle_OR(n,top),modules = ['numpy'])
-        idles = idle_func(ns)        
-        if top != '1d':
-            plt.plot(ns,idles,color+'-',label = top)
-    plt.legend()
-    plt.show()
-
-
-
-def data_un_to_bin_QSP():
-    print("unary dataloader")
-    for g in ['d','m','id','im','ic']:
-        for top in ['all','1d','2d','LAQCC']:
-            res = unary_dataloader(d,g,top,False)
-            print(f"g = {g} \t top = {top} \t sum = {expand(res)}")
-    print("unary to binary")
-    for g in ['d','m','id','im','ic']:
-        for top in ['all','1d','2d','LAQCC']:
-            res = un_to_bin(n,d,g,top,False)
-            res = res.subs(two_p,2**p)
-            res = res.subs(p,log(n))
-            res = res.subs(2**log(n),n)
-            print(f"g = {g} \t top = {top} \t sum = {expand(res)}")
-    print("combination!")
-    for g in ['d','m','id','im','ic']:
-        for top in ['all','1d','2d','LAQCC']:
-            res = un_to_bin_QSP(n,d,g,top,False)
-            res = res.subs(two_p,2**p)
-            res = res.subs(p,log(n))
-            res = res.subs(2**log(n),n)
-            print(f"g = {g} \t top = {top} \t sum = {expand(res)}")
-
-def plot_un_to_bin_QSP():
-    ns = np.linspace(10,100)
-
-    colors = ['r','b','g','y']
-    tops = ['all','1d','2d','LAQCC']
-    for color,top in zip(colors,tops):
-        gate_func = lambdify(n, sum_gates_un_to_bin(d,d_new,top),modules = ['numpy'])
-        gates = gate_func(ns)
-        if top != "1d":
-            plt.plot(ns,gates,color,label = top)
-    plt.legend()
-    plt.show()
-    for color,top in zip(colors,['all','1d','2d','LAQCC']):
-        idle_func = lambdify(n, sum_idle_un_to_bin(d,d_new,top),modules = ['numpy'])
-        idles = idle_func(ns)
-        if top != "1d":
-            plt.plot(ns,idles,color+'-',label = top)
-    plt.legend()
-    plt.show()
-
-if __name__ == "__main__":
-    # data_ucg_QSP()
-    #compFO()
-    #compOR()
-    # compANDnorm()
-    #compEQ()
-    # compANDnorm()
-    #comp_allcock()
-
-
-
-    #allcock
-    # m = Symbol('m')
-    # thing = 4*n -16 + ((m-1)/2-1)*(2*n-16) + 4*((m-1)/2-1)*((m-1)/2)
-    # print(expand(thing))
-    for g in ['d','m','id','im','ic']:
-        for top in ['all','1d','2d','LAQCC']:
-            res = expand(orreduc(n,p,g,top,False))
-            print(f"g = {g} \t top = {top} \t sum = {res}")
-    #         # res = res.subs(two_p,2**p)
-    #         # res =res.subs(p,log(n))
-    #         # res = res.subs(2**log(n),n)
-    #         string = str(res)
-    #         # string = re.sub(r"\*\*","^",string)
-    #         # string = re.sub(r"\*","",string)
-    #         # string = re.sub(r"ceiling",r"\\lceil",string)
-    #         # string = re.sub(r"two_p",r" 2^p",string)
-    #         # string = re.sub(r"log\(([^\)]*)\)",r"\\log(\1)",string)
-    #         # string = re.sub(r"sqrt\(([^\)]*)\)",r"\\sqrt{\1}",string)         
-             
-    # print("andlog \n")
-    #andlog
-    # for g in ['d','m','id','im','ic']:
-    #     string = str(andlog(n,g,False))
-    #     string = re.sub(r"\*","",string)
-    #     # string = re.sub(r"ceiling\((\([a-z0-9]*\)*)\)",r"\\lceil \1 \\rceil",string)
-    #     # string = re.sub(r"two_p",r" 2^p",string)
-    #     string = re.sub(r"log\(([^\)]*)\)",r"\\log(\1)",string)
-    #     string = re.sub(r"sqrt\(([^\)]*)\)",r"\\sqrt{\1}",string)
-    #     print(f"g = {g} \t sum = {string}")
-    # print("\n")
-
-    # string = 2*p*two_p + 4*p*(-2*n + (n - 1)*ceiling(log(n - 1)) + 4) -  two_p + 4*(n - 1)*(p*ceiling(log(p)) - 2*p + 2)+ (-2*p + (p + 1)*ceiling(logp_1))*(2*two_p - 2) + (2*p + 1)*(-2*two_p + ( two_p - 1)*p + 4) + (two_p - 1)*(p-1) + 2
-    # result = expand(string)
-    # string = str(result)
-    # string = re.sub(r"\*\*","^",string)
-    # string = re.sub(r"\*","",string)
-    # string = re.sub(r"ceiling",r"\\lceil",string)
-    # string = re.sub(r"two_p",r" 2^p",string)
-    # string = re.sub(r"log\(([^\)]*)\)",r"\\log(\1)",string)
-    # string = re.sub(r"sqrt\(([^\)]*)\)",r"\\sqrt{\1}",string)
-    # string = re.sub(r"lpo",r"\\log(p+1)",string)
-    # string = re.sub(r"lp",r"\\log(p)",string)

@@ -1,10 +1,8 @@
 from sympy import *
-import numpy as np
-import re
-import math
-import matplotlib.pyplot as plt
 from simplify import *
-from sympy.utilities.lambdify import lambdastr
+from gatesums import *
+import numpy as np
+import matplotlib.pyplot as plt
 
 gamma_brisbane = 1.936
 gamma_fez = 2.542
@@ -16,112 +14,27 @@ beige = "#cfc7a9"
 grey = "#919191"
 blue = "#2b6c7b"
 red = "#5a002c"
+yellow = "#ffdb58"
+green = "#006400"
 
+def sum_gates_and(andfunc,ns):
+    gates = np.zeros(len(ns))
+    for i , n in enumerate(ns):
+        print(n)
+        res = 0
+        for g in ['d','m']:
+            res+= andfunc(n,g,"all",False)
+        gates[i] = res
+    return gates
 
-
-n,p,logp, logp_1, logn, sqrtn,two_p, d,i = symbols('n p lp lpo ln sqrtn two_p d i')
-
-def comp_allcock():
-    tops = ["LAQCC",'all','1d','2d']
-    labels = ["LAQCC",'All-to-all', '1D grid', '2D grid']
-    for d in [n,n**2,2**n]:
-        print(f"d = {d}")
-        gates_LAQCC = sum_gates_ucg_qsp(allcock,n,d,"LAQCC",False)
-        idles_LAQCC = sum_idle_ucg_qsp(allcock,n,d,"LAQCC",False)
-        for label,top in zip(labels,tops):
-            print(top + "\n")
-            gates_top = sum_gates_ucg_qsp(allcock,n,d,top,False)
-            idles_top = sum_idle_ucg_qsp(allcock,n,d,top,False)
-            print(gates_top)
-            print("\n")
-            print(idles_top)
-            print("\n")
-            # print(f"hallo")
-            # # exponent = (idles_top - idles_LAQCC)/(gates_LAQCC-gates_top)
-            # print(f"hallo")
-            # print(expand(exponent))
-            # print("\n")
-            ns = np.linspace(10,30)
-            # print(ns)
-            # if top == "all":
-            #     ns = np.linspace(5,10**(12))
-            # if top =="2d":
-            #     ns = np.linspace(5,1000)
-            # if top == "1d":
-            #     ns = np.linspace(5,100)
-            # exponent_func = lambdify(n,exponent,modules = ['numpy'])
-            gates_func = lambdify(n,gates_top,modules = ['numpy'])
-            idles_func = lambdify(n,idles_top,modules = ['numpy'])
-            ga = gates_func(ns)
-            id = idles_func(ns)
-            # print(ga)
-            # print(id)
-            _, ax = plt.subplots()
-            ax.set_xlim(min(ns),max(ns))
-            # # ax.set_ylim(, max(exps))
-            # ax.fill_between(ns,ax.get_ylim()[0],0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
-            # ax.fill_between(ns,0,1,color = grey, alpha = 0.2, interpolate = True,label = "Unrealistic")
-            # ax.axhline(y=gamma_brisbane,color = beige,linestyle = 'dashed', label = "IBM Brisbane")
-            ax.plot(ns,ga,color = blue,label= label)
-            ax.plot(ns,id,color ='red',label= label)
-            # ax.set_xlabel(r"$n$")
-            # ax.set_ylabel(r"$\gamma_1\ /\ \gamma_2$")
-            ax.set_title(f"d = {d}")
-            # if top == "all":
-            #     ax.set_xscale("log")
-            plt.legend()
-            plt.show()
-
-def comp_perm():
-    ns = np.linspace(5,30)
-    N = 2**n
-    ds = [5,n,n**2,n**5, N]
-    colors = ['r','b','g']
-    tops = ['all','1d','2d']
-    for d in ds:
-        gates_LAQCC = sum_gates_perm(d,'LAQCC')
-        idle_LAQCC = sum_idle_perm(d,'LAQCC')
-        for color,top in zip(colors,tops):
-            gates_top = sum_gates_perm(d,top)
-            idle_top = sum_idle_perm(d,top)
-            exponent = (idle_top - idle_LAQCC)/(gates_LAQCC-gates_top)
-            print(exponent)
-            print("\n")
-            exponent_func = lambdify((n,i),exponent,modules = ['numpy'])
-            exps = exponent_func(ns)
-            if top != '1d':
-                plt.plot(ns,exps,color,label= top)
-        plt.title(f"d = {str(d)}")
-        plt.legend()
-        plt.show()
-
-def compEQ():
-    ns = np.linspace(5,2000)
-    pd = 1-9.442*10**(-3)
-    pid = 1- 4.998*10**(-3)
-    gamma = math.log(pd,pid)
-    plt.axhline(y=gamma,color = 'grey',linestyle = 'dashed', label = "IBM Brisbane")
-    colors = ['r','b','g']
-    tops = ['all','1d','2d']
-    gates_LAQCC = sum_gates_OR(n,'LAQCC')
-    idle_LAQCC = sum_idle_OR(n,'LAQCC')
-    for color,top in zip(colors,tops):
-        gates_top = sum_gates_OR(n,top)
-        idle_top = sum_idle_OR(n,top)
-        exponent = (idle_top - idle_LAQCC)/(gates_LAQCC-gates_top)
-        print(f"top = {top}")
-        print(expand(exponent))
-        print("\n")
-
-        exponent_func = lambdify(n,exponent,modules = ['numpy'])
-        
-        exps = exponent_func(ns)
-        if top != '1d':
-            plt.plot(ns,exps,color,label= top)
-    plt.xlabel("n")
-    plt.ylabel("γ")
-    plt.legend()
-    plt.show()
+def sum_idle_and(andfunc,ns):
+    gates = np.zeros(len(ns))
+    for i , n in enumerate(ns):
+        res = 0
+        for g in ['id','im','ic']:
+            res+= andfunc(n,g,"all",False)
+        gates[i] = res
+    return gates
 
 def compFO():
     tops = ['all','1d','2d']
@@ -173,106 +86,36 @@ def compFO():
         
         plt.savefig(f"FO_{top}.png", dpi = (600)) 
 
-def compANDnorm():
-    ns = np.linspace(10,1000,1000-10)
-    #plt.axhline(y=gamma_brisbane,color = "brown",linestyle = 'dashed', label = "IBM Brisbane")
-
-    gates_or = orr(n,'d','all',False)
-    idle_or = orr(n,'id','all',False)
-    # print(expand(gates_or), "\n")
-    # print(expand(idle_or), "\n")
-    for base in [3,4,5]:
-        gates_recursive = andlogbetter(n,'d',base,False)
-        idle_recursive = andlogbetter(n,'id',base,False)
-        gamma1 = (idle_recursive- idle_or)
-        gamma2 = (gates_recursive - gates_or)
-        exponent = gamma1/gamma2
-        print(f"base = {base} \n")
-        print(expand(exponent))
-        print("\n")
-
-        gamma1_func = lambdify(n,gamma1,modules = ['numpy'])
-        gamma2_func = lambdify(n,gamma2,modules = ['numpy'])
-        gamma1s = gamma1_func(ns)
-        gamma2s = gamma2_func(ns)
-        exponent_func = lambdify(n,exponent,modules = ['numpy'])
-        
-        exps = exponent_func(ns)
-        if base == 3:
-            alpha = 1
-        else:
-            alpha = 0.2
-        if base== 3:
-            plt.plot(ns,gamma1s,blue,label= r"$|Recursive|_{i_d} -|OR|_{i_d}$" +f", b = {base}", alpha = alpha)
-            plt.plot(ns,gamma2s,red,label= r"$|Recursive|_d -|OR|_d$" +f", b = {base}", alpha = alpha)
-        else:
-            plt.plot(ns,gamma1s,blue, alpha = alpha)
-            plt.plot(ns,gamma2s,red, alpha = alpha)
-        #plt.plot(ns,exps,blue,label= f"b = {base}", alpha = alpha)
-     
-    # plt.xlim(min(ns),max(ns))
-    # plt.ylim(-2, 6)
-    # plt.yticks(list(range(-2,int(plt.ylim()[1])+1)))
-    # plt.fill_between(ns,-2,0,color = grey, alpha = 0.5,label = "Impossible")
-    # plt.fill_between(ns,0,1,color = grey, alpha = 0.2,label = "Unrealistic")
-    plt.xlabel(r"$n$")
-    # plt.ylabel(r"$\gamma_1(n)\ /\ \gamma_2(n)$")
-    plt.legend(loc = "lower left")
-    plt.show()
-
-
-    # ns = np.linspace(30,500,500-30)
-    # pd = 1-9.442*10**(-3)
-    # pid = 1- 4.998*10**(-3)
-    # gamma = math.log(pd,pid)
-    # plt.axhline(y=gamma,color = 'grey',linestyle = 'dashed', label = "IBM Brisbane")
-
-    # gates_or = orr(n,'d','all',False)
-    # idle_or = orr(n,'id','all',False)
-    # # print(expand(gates_or), "\n")
-    # # print(expand(idle_or), "\n")
-    # for base in [3,4,5]:
-    #     gates_recursive = andlogbetter(n,'d',base,False)
-    #     idle_recursive = andlogbetter(n,'id',base,False)
-    #     print(expand(gates_recursive), "\n")
-    #     print(expand(idle_recursive), "\n")
-    #     exponent = (idle_or - idle_recursive)/(gates_recursive - gates_or)
-    #     print(expand(exponent))
-    #     print("\n")
-    #     exponent_func = lambdify(n,exponent,modules = ['numpy'])
-    #     exps = exponent_func(ns)
-    #     plt.plot(ns,exps,label= f"Base = {base}")
-    # plt.ylabel("gamma")
-    # plt.xlabel("n")
-    # plt.legend()
-    # plt.show()
-
-def compAllcockQSP():
-    ns = np.linspace(10,1000,1000-10)
-    plt.axhline(y=gamma_brisbane,color = grey,linestyle = 'dashed', label = "IBM Brisbane")
-
-    # gates_laqcc = sum_gates_allcock(d,g,)
-
-
-
 def compAND():
-    ns = list(range(10,1000,5))
-    print(ns)
-    pd = 1-9.442*10**(-3)
-    pid = 1- 4.998*10**(-3)
-    gamma_ibm = math.log(pd,pid)
-    plt.axhline(y=gamma_ibm,color = 'grey',linestyle = 'dashed', label = "IBM Brisbane")
+    ns = [int(x) for x in np.linspace(10,1000,50)]
+    _, ax = plt.subplots()
+    gates_or = sum_gates_and(orr,ns)
+    idle_or = sum_idle_and(orr,ns)
+    gates_rec = sum_gates_and(and_recursive,ns)
+    idle_rec = sum_idle_and(and_recursive,ns)
+    gamma1 = (idle_rec- idle_or)
+    gamma2 = -1*(gates_rec - gates_or)
+    exps = gamma1/gamma2
 
-    gammas = np.zeros(len(ns))
-    for i,n in enumerate(ns):
-        gates_recursive = andlogexact(int(n),'d',False)
-        idle_recursive =  andlogexact(int(n),'id',False)
-        gates_or =  orr(int(n),'d','all',False)
-        idle_or =  orr(int(n),'id','all',False)
-        gammas[i] = ((idle_or - idle_recursive)/(gates_recursive-gates_or)).evalf()
-        plt.plot(ns,gammas, label = "recursive > or")
-    plt.legend()
-    plt.show()
+    ax.plot(ns,exps,blue)
+     
+    ax.set_xlim(min(ns),max(ns))
+    ymin = -2
+    ymax = 6
+    ysum = ymax - ymin
+    ax.set_ylim(ymin,ymax)
+    ax.set_yticks(list(range(-2,int(plt.ylim()[1])+1)))
+    ax.fill_between(ns,-2,0,color = grey, alpha = 0.5,label = "Impossible")
+    ax.fill_between(ns,0,1,color = grey, alpha = 0.2,label = "Unrealistic")
+    ax.axhline(y=gamma_brisbane,color = "brown",linestyle = 'dashed')
+    
+    ax.annotate("ibm_brisbane", xy = (0.25,(gamma_brisbane+0.15-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+    ax.axhline(y=gamma_torino,color = "brown",linestyle = 'dashed')
+    ax.annotate("ibm_torino",  xy = (0.05,(gamma_torino+0.15-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+    ax.set_xlabel(r"$n$")
+    ax.set_ylabel(r"$\gamma_1(n)\ /\ \gamma_2(n)$")
+    ax.legend(loc = "lower left")
+    plt.savefig(f"AND_comp.png", dpi = (600)) 
 
 def compOR():
     tops = ['all','1d','2d']
@@ -323,14 +166,277 @@ def compOR():
         plt.legend(loc ="upper left")
         plt.savefig(f"OR_{top}.png", dpi = (600)) 
 
-if __name__ == "__main__":
-    compANDnorm()
 
-    # gates_LAQCC = sum_gates_FO(n,'LAQCC')
-    # idle_LAQCC = sum_idle_FO(n,'LAQCC')
-    # gates_top = sum_gates_FO(n,'2d')
-    # idle_top = sum_idle_FO(n,'2d')
-    # exponent = (idle_top - idle_LAQCC)/(gates_LAQCC-gates_top)
-    # exponent = exponent.subs(ceiling(log(n,2)), log(n,2))
-    # print(solve(exponent - gamma_brisbane,n))
+def unbin_comp_qsp(gate_qsp,idle_qsp,ucg = parallelized_UCG):
+    tops = ['1d','2d']
+    labels = ['1D grid', '2D grid']
+    ns_all = ([50,50,20,20],[1000,1000,1000,200])
+    for i,(label,top) in enumerate(zip(labels,tops)):
+        nss =[np.linspace(10,ns,50) for ns in ns_all[i]]
+        d0 = ([10]*len(nss[0]),"10")
+        d1 = (nss[1],"n")
+        d2 = (nss[2]**2,"n^2")
+        dss = [d0,d1,d2]
+        for j, (ns, ds) in enumerate(zip(nss, dss)):
+            gates_laqcc = gate_qsp(ucg,ns,ds[0],"LAQCC")
+            idles_laqcc = idle_qsp(ucg,ns,ds[0],"LAQCC")
+             
+             
+            gates_top = gate_qsp(ucg,ns,ds[0],top)
+            idles_top = idle_qsp(ucg,ns,ds[0],top)
+             
+             
+            gamma_2=  gates_laqcc- gates_top
+            gamma_1 = idles_top - idles_laqcc
+            if top != "all":
+                _, ax = plt.subplots()
+                ax.plot(ns,gamma_2,'red')
+                ax.plot(ns,-1*gamma_1,'blue')
+                plt.show()
+            gamma = gamma_1/gamma_2
+             
+             
+             
+            _, ax = plt.subplots()
+            ax.set_xlim(min(ns),max(ns))
+            ax.set_ylim(min(gamma), max(3, max(gamma)))
+            ymin,ymax = ax.get_ylim()
+            if top != "1d":
+                ax.set_yticks(list(range(int(ymin),int(ymax)+2)))
+            ax.fill_between(ns,ax.get_ylim()[0],0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
+            ax.fill_between(ns,0,1,color = grey, alpha = 0.2, interpolate = True,label = "Unrealistic")
+            ax.axhline(y=gamma_brisbane,color = beige,linestyle = 'dashed', label = "IBM Brisbane")
+            ax.plot(ns,gamma,color = blue,label= label)
+            ax.set_xlabel(r"$n$")
+            ax.set_ylabel(r"$\gamma_1\ /\ \gamma_2$")
+            ax.set_title(f"d = {ds[1]}")
+            if top == "all":
+                ax.set_xscale("log")
+            plt.legend()
+            plt.show()
+
+
+def comp_dense_unbin():
+    tops = ['all','2d']
+    labels = ['All-to-all', '2D grid']
+    ns_all = [50,20]    
+    for i,(label,top) in enumerate(zip(labels,tops)):
+        _, ax = plt.subplots()
+        ns =[int(x) for x in np.linspace(5,ns_all[i],8)]    
+        ax.axhline(y=gamma_brisbane,color = "brown",linestyle = 'dashed')
+        ax.axhline(y=gamma_torino,color = "brown",linestyle = 'dashed')
+         
+         
+        if top == "all":
+            ysum = 360
+            ymin = -350
+            ymax = 10
+        if top == "2d":
+            ysum =12
+            ymin = -2
+            ymax = 10
+        ax.set_ylim((ymin,ymax))
+        ax.set_xlim(5,20)
+        ax.fill_between(ns,ymin,0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
+        ax.fill_between(ns,0,1,color = grey, alpha = 0.2, interpolate = True,label = "Unrealistic")
+        ax.annotate("ibm_brisbane", xy = (0.2,(gamma_brisbane+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+        ax.annotate("ibm_torino",  xy = (0.2,(gamma_torino+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+        ds = [2**n for n in ns]  
+        gates_laqcc = sum_gates_un_to_bin(ns,ds,"LAQCC", dense = True)
+        idles_laqcc = sum_idle_un_to_bin(ns,ds,"LAQCC",dense = True)
+        gates_top = sum_gates_un_to_bin(ns,ds,top, dense = True)
+        idles_top = sum_idle_un_to_bin(ns,ds,top, dense = True)
+         
+         
+        gamma_2=  gates_laqcc- gates_top
+        gamma_1 = idles_top - idles_laqcc
+        gamma = gamma_1/gamma_2
+         
+        ax.plot(ns,gamma,color =blue)
+        ax.set_xlabel(r"$n$")
+        ax.set_ylabel(r"$\gamma_1(n)\ /\ \gamma_2(n)$")
+        if i ==0:
+            plt.legend(loc = 'upper right')
+        else:
+            plt.legend(loc = 'upper right')
+        plt.show()
+
+
+
+def comp_dense_ucg_qsp():
+    UCGS = ['Parallelized', 'Sequential']
+    ns_all = [990,990]    
+    for i,(ucglabel,ucg) in enumerate(zip(UCGS,[parallelized_UCG,gr])):
+        _, ax = plt.subplots()
+        ns =[int(x) for x in np.linspace(5,ns_all[i],8)]
+        ax.fill_between(ns,-3,0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
+        ax.fill_between(ns,0,1,color = grey, alpha = 0.2, interpolate = True,label = "Unrealistic")
+        ax.axhline(y=gamma_brisbane,color = "brown",linestyle = 'dashed')
+        ax.axhline(y=gamma_torino,color = "brown",linestyle = 'dashed')
+         
+        ysum = 13
+        ymin = -3
+        ymax = 10
+        ax.set_ylim((ymin,ymax))
+        ax.set_xlim(5,1000)
+        ax.set_xticks([5,50] + list(range(100,1100,100)))
+        ax.set_yticks(list(range(ymin,ymax+1)))
+        if ucglabel == "Parallelized":
+            ax.annotate("ibm_brisbane", xy = (0.05,(gamma_brisbane+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+            ax.annotate("ibm_torino",  xy = (0.05,(gamma_torino+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+        if ucglabel  == "Sequential":
+            ax.annotate("ibm_brisbane", xy = (0.05,(gamma_brisbane+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+            ax.annotate("ibm_torino",  xy = (0.05,(gamma_torino+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+
+        tops = ['all','2d']
+        labels = ['All-to-all', '2D grid']
+        for j, (top,colorg) in enumerate(zip(tops, [blue,green])):
+            if top == '2d' and ucglabel == "Parallelized":
+                ns = [int(x) for x in np.linspace(5,50,10)]
+            else:
+                ns =[int(x) for x in np.linspace(5,ns_all[i],8)]
+             
+             
+            gates_laqcc = sum_gates_dense_ucg_qsp(ucg,ns,"LAQCC")
+             
+            idles_laqcc = sum_idle_dense_ucg_qsp(ucg,ns,"LAQCC")
+             
+            gates_top = sum_gates_dense_ucg_qsp(ucg,ns,top)
+             
+            idles_top = sum_idle_dense_ucg_qsp(ucg,ns,top)
+             
+             
+            gamma_2=  gates_laqcc- gates_top
+            gamma_1 = idles_top - idles_laqcc
+            gamma = gamma_1/gamma_2
+             
+            ax.plot(ns,gamma,color =colorg,label= labels[j])
+        ax.set_xlabel(r"$n$")
+        ax.set_ylabel(r"$\gamma_1(n)\ /\ \gamma_2(n)$")
+        plt.legend(loc = "upper right")
+        plt.savefig(f"denseUCG_{top}.png", dpi =600)
+
+def comp_unbin():
+    tops = ['all','2d']
+    labels = ['All-to-all', '2D grid']
+    ns_all = ([1000,1000,1000,200], [1000,1000,1000,200])
+    for i,(label,top) in enumerate(zip(labels,tops)):
+         
+        nss =[np.linspace(5,ns,10) for ns in ns_all[i]]
+        d0 = ([10]*len(nss[0]),"10")
+        d1 = (nss[1],"n")
+        d2 = (nss[2]**2,"n^2")
+        d3 = (nss[3]**3, "n^3")
+        
+        dss = [d0,d1,d2,d3]
+        _, ax = plt.subplots()
+        ax.axhline(y=gamma_brisbane,color = "brown",linestyle = 'dashed')
+        ax.axhline(y=gamma_torino,color = "brown",linestyle = 'dashed')
+        if top == "2d":
+            ymin = -2
+            ymax = 10
+            ysum = ymax - ymin
+        if top == "all":
+            ysum = 9
+            ymin = -4
+            ymax = 5
+
+        ax.fill_between(nss[0],ymin,0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
+        ax.fill_between(nss[0],0,1,color = grey, alpha = 0.2, interpolate = True,label = "Unrealistic")
+        
+        ax.set_ylim((ymin,ymax))
+        ax.set_xlim(5,ns_all[i][0])
+        ax.set_yticks(list(range(ymin,ymax+1)))
+        xticks = [5] + list(range(100,ns_all[i][0] + 100,100))
+        ax.set_xticks(xticks)
+        if top =="2d":
+            ax.annotate("ibm_brisbane", xy = (0.1,(gamma_brisbane+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+            ax.annotate("ibm_torino",  xy = (0.1,(gamma_torino+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+        else:
+            ax.annotate("ibm_brisbane", xy = (0.1,(gamma_brisbane+0.15-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+            ax.annotate("ibm_torino",  xy = (0.1,(gamma_torino+0.15-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+        morecolors = [red,yellow, blue]
+        morecolors = morecolors + [green, "orange"]
+        for j, ((ns, ds),color) in enumerate(zip(zip(nss, dss), morecolors)):
+            gates_laqcc = sum_gates_un_to_bin(ns,ds[0],"LAQCC")
+            idles_laqcc = sum_idle_un_to_bin(ns,ds[0],"LAQCC")
+            
+            gates_top = sum_gates_un_to_bin(ns,ds[0],top)
+            idles_top = sum_idle_un_to_bin(ns,ds[0],top)
+            gamma_2=  gates_laqcc- gates_top
+            gamma_1 = idles_top - idles_laqcc
+            gamma = gamma_1/gamma_2            
+            ax.plot(ns,gamma,color =color,label= f"d = {ds[1]}")
+            ax.set_xlabel(r"$n$")
+            ax.set_ylabel(r"$\gamma_1(n)\ /\ \gamma_2(n)$")
+        if i ==0:
+            plt.legend(loc = 'upper right')
+        else:
+            plt.legend(loc = 'upper center')
+        plt.show()
+
+
+def comp_ucg_qsp():
+    tops = ['all','2d']
+    labels = ['All-to-all', '2D grid']
+    ns_all = ([1000,1000,1000,1000], [1000,1000,1000,200])
+    ucglabels = ["parallelized","sequential"]
+    for i,(label,top) in enumerate(zip(labels,tops)):
+        for ucg, ucglabel in zip([parallelized_UCG,gr],ucglabels):
+             
+            nss =[np.linspace(5,ns,10) for ns in ns_all[i]]
+            d0 = ([10]*len(nss[0]),"10")
+            d1 = (nss[1],"n")
+            d2 = (nss[2]**2,"n^2")
+            d3 = (nss[3]**3, "n^3")
+            dss = [d0,d1,d2,d3]
+            _, ax = plt.subplots()
+            ax.fill_between(nss[0],-3,0,color = grey, alpha = 0.5, interpolate = True,label = "Impossible")
+            ax.fill_between(nss[0],0,1,color = grey, alpha = 0.2, interpolate = True,label = "Unrealistic")
+            ax.axhline(y=gamma_brisbane,color = "brown",linestyle = 'dashed')
+            ax.axhline(y=gamma_torino,color = "brown",linestyle = 'dashed')
+            ysum = 12
+            ymin = -2
+            ymax = 10
+            ax.set_ylim((ymin,ymax))
+            ax.set_xlim(5,ns_all[i][0])
+            ax.set_yticks(list(range(ymin,ymax+1)))
+            xticks = [5] + list(range(100,ns_all[i][0] + 100,100))
+            ax.set_xticks(xticks)
+            if top =="2d":
+                ax.annotate("ibm_brisbane", xy = (0.4,(gamma_brisbane+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+                ax.annotate("ibm_torino",  xy = (0.2,(gamma_torino+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+            else:
+                ax.annotate("ibm_brisbane", xy = (0.1,(gamma_brisbane+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+                ax.annotate("ibm_torino",  xy = (0.1,(gamma_torino+0.20-ymin)/ysum), xycoords="axes fraction",horizontalalignment="left",fontsize =8)
+            morecolors = [red,yellow, blue]
+            morecolors = morecolors + [green, "orange"]
+            
+            for j, ((ns, ds),color) in enumerate(zip(zip(nss, dss), morecolors)):
+                gates_laqcc = sum_gates_ucg_qsp(ucg,ns,ds[0],"LAQCC")
+                idles_laqcc = sum_idle_ucg_qsp(ucg,ns,ds[0],"LAQCC")
+                
+                gates_top = sum_gates_ucg_qsp(ucg,ns,ds[0],top)
+                idles_top = sum_idle_ucg_qsp(ucg,ns,ds[0],top)
+                gamma_2=  gates_laqcc- gates_top
+                gamma_1 = idles_top - idles_laqcc
+                gamma = gamma_1/gamma_2
+                 
+                ax.plot(ns,gamma,color =color,label= f"d = {ds[1]}")
+                ax.set_xlabel(r"$n$")
+                ax.set_ylabel(r"$\gamma_1(n)\ /\ \gamma_2(n)$")
+            plt.legend(loc = "upper right")
+            plt.savefig(f"sparseUCG_{ucglabel}_{top}.png",dpi=600)
+
+if __name__ == "__main__":
+    comp_ucg_qsp()
+
+
+
+
+
+if __name__ == "__main__":
+    compFO()
+    compOR()
+    compAND()
     
